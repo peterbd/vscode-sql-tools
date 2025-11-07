@@ -9,6 +9,7 @@ export interface CompletionContextResult {
   readonly alias?: string;
   readonly routineCategory?: 'procedure' | 'function' | 'view' | 'any';
   readonly routineTrigger?: 'ddl' | 'exec';
+  readonly tableTrigger?: 'insert';
 }
 
 export interface IdentifierMatch {
@@ -53,6 +54,11 @@ export namespace SqlParser {
     const routineContext = detectRoutineContext(linePrefix);
     if (routineContext) {
       return routineContext;
+    }
+
+    const insertContext = detectInsertContext(linePrefix);
+    if (insertContext) {
+      return insertContext;
     }
 
     const trimmedPrefix = linePrefix.trimEnd();
@@ -174,6 +180,21 @@ export namespace SqlParser {
     }
 
     return undefined;
+  }
+
+  function detectInsertContext(linePrefix: string): CompletionContextResult | undefined {
+    const match = /\binsert\s+into\s+([\w\[\]\.\s]*)$/i.exec(linePrefix);
+    if (!match) {
+      return undefined;
+    }
+
+    const { schema, prefix } = parseRoutineToken(match[1] ?? '');
+    return {
+      type: 'table',
+      prefix,
+      owner: schema,
+      tableTrigger: 'insert'
+    };
   }
 
   function buildRoutineContext(
@@ -300,16 +321,21 @@ export namespace SqlParser {
       return {};
     }
 
-    const object = stripBrackets(parts.pop() ?? '');
-    let schema: string | undefined;
+    const normalizedParts = parts.map((part) => stripBrackets(part));
+
     let database: string | undefined;
+    let schema: string | undefined;
+    let object: string | undefined;
 
-    if (parts.length) {
-      schema = stripBrackets(parts.pop() ?? '');
-    }
-
-    if (parts.length) {
-      database = stripBrackets(parts.pop() ?? '');
+    if (normalizedParts.length === 1) {
+      object = normalizedParts[0];
+    } else if (normalizedParts.length === 2) {
+      schema = normalizedParts[0];
+      object = normalizedParts[1];
+    } else if (normalizedParts.length >= 3) {
+      database = normalizedParts[normalizedParts.length - 3];
+      schema = normalizedParts[normalizedParts.length - 2];
+      object = normalizedParts[normalizedParts.length - 1];
     }
 
     return {

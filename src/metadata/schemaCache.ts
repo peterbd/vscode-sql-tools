@@ -29,6 +29,10 @@ export interface ColumnMetadata {
   readonly scale?: number;
   readonly isNullable: boolean;
   readonly description?: string;
+  readonly isIdentity: boolean;
+  readonly isComputed: boolean;
+  readonly isRowGuid: boolean;
+  readonly defaultExpression?: string;
 }
 
 export interface RoutineMetadata {
@@ -87,16 +91,26 @@ export class SchemaCache implements vscode.Disposable {
     return entry ? [...entry.tables.values()].filter((t) => t.type === 'TABLE' || t.type === 'VIEW') : [];
   }
 
-  async getTable(connection: MssqlConnection | undefined, schema: string, name: string, token?: vscode.CancellationToken): Promise<TableMetadata | undefined> {
+  async getTable(
+    connection: MssqlConnection | undefined,
+    schema: string,
+    name: string,
+    token?: vscode.CancellationToken,
+    options?: { database?: string }
+  ): Promise<TableMetadata | undefined> {
+    if (options?.database && connection?.database && options.database.toLowerCase() !== connection.database.toLowerCase()) {
+      return this.loadTableCrossDatabase(connection, options.database, schema, name);
+    }
+
     const entry = await this.ensureCache(connection, token);
     if (!entry) {
-      return this.loadTableOnDemand(connection, schema, name);
+      return this.loadTableOnDemand(connection, schema, name, options);
     }
 
     const key = toObjectKey(schema, name);
     let table = entry.tables.get(key);
     if (!table) {
-      table = await this.loadTableOnDemand(connection, schema, name);
+      table = await this.loadTableOnDemand(connection, schema, name, options);
       if (!table) {
         this.logger.warn(`Table metadata not found for ${schema}.${name}.`);
         return undefined;
@@ -105,12 +119,12 @@ export class SchemaCache implements vscode.Disposable {
     }
 
     if (!table.columns) {
-      table = await this.populateColumns(connection, table);
+      table = await this.populateColumns(connection, table, options);
       entry.tables.set(key, table);
     }
 
     if (!table.description) {
-      table = await this.populateDescription(connection, table);
+      table = await this.populateDescription(connection, table, options);
       entry.tables.set(key, table);
     }
 
@@ -231,11 +245,19 @@ export class SchemaCache implements vscode.Disposable {
     return entry;
   }
 
-  private async populateColumns(connection: MssqlConnection | undefined, table: TableMetadata): Promise<TableMetadata> {
-    const query = columnsForObjectQuery(table.schema, table.name, connection?.database);
+  private async populateColumns(
+    connection: MssqlConnection | undefined,
+    table: TableMetadata,
+    options?: { database?: string }
+  ): Promise<TableMetadata> {
+    const queryDatabase = options?.database ?? connection?.database;
+    this.logger.info(
+      `[SchemaCache] Loading columns for ${queryDatabase ?? '<default>'}.${table.schema}.${table.name}`
+    );
+    const query = columnsForObjectQuery(table.schema, table.name, queryDatabase);
     const result = await this.api.runQuery(query, undefined, { useLegacyFallback: false });
     if (!result) {
-      this.logger.warn(`Failed to load columns for ${table.schema}.${table.name}.`);
+  this.logger.warn(`Failed to load columns for ${queryDatabase ?? '<default>'}.${table.schema}.${table.name}.`);
       return table;
     }
 
@@ -245,15 +267,24 @@ export class SchemaCache implements vscode.Disposable {
       maxLength: toNumber(row['max_length']),
       precision: toNumber(row['precision']),
       scale: toNumber(row['scale']),
-      isNullable: Boolean(row['is_nullable']),
-      description: row['description'] ? String(row['description']) : undefined
+      isNullable: toBoolean(row['is_nullable']),
+      description: row['description'] ? String(row['description']) : undefined,
+      isIdentity: toBoolean(row['is_identity']),
+      isComputed: toBoolean(row['is_computed']),
+      isRowGuid: toBoolean(row['is_rowguidcol']),
+      defaultExpression: row['default_definition'] ? String(row['default_definition']) : undefined
     }));
 
     return { ...table, columns };
   }
 
-  private async populateDescription(connection: MssqlConnection | undefined, table: TableMetadata): Promise<TableMetadata> {
-    const query = extendedPropertyDescriptionQuery(table.schema, table.name, connection?.database);
+  private async populateDescription(
+    connection: MssqlConnection | undefined,
+    table: TableMetadata,
+    options?: { database?: string }
+  ): Promise<TableMetadata> {
+  const queryDatabase = options?.database ?? connection?.database;
+  const query = extendedPropertyDescriptionQuery(table.schema, table.name, queryDatabase);
     const description = await this.api.runScalar<string>(query, { useLegacyFallback: false });
     return description ? { ...table, description } : table;
   }
@@ -282,13 +313,18 @@ export class SchemaCache implements vscode.Disposable {
       maxLength: toNumber(row['max_length']),
       precision: toNumber(row['precision']),
       scale: toNumber(row['scale']),
-      isOutput: Boolean(row['is_output'])
+      isOutput: toBoolean(row['is_output'])
     }));
 
     return { ...routine, parameters };
   }
 
-  private async loadTableOnDemand(connection: MssqlConnection | undefined, schema: string, name: string): Promise<TableMetadata | undefined> {
+  private async loadTableOnDemand(
+    connection: MssqlConnection | undefined,
+    schema: string,
+    name: string,
+    options?: { database?: string }
+  ): Promise<TableMetadata | undefined> {
     if (!connection) {
       return undefined;
     }
@@ -299,12 +335,30 @@ export class SchemaCache implements vscode.Disposable {
       type: 'TABLE'
     };
 
-    table = await this.populateColumns(connection, table);
+    table = await this.populateColumns(connection, table, options);
     if (!table.columns || table.columns.length === 0) {
       return undefined;
     }
 
-    table = await this.populateDescription(connection, table);
+    table = await this.populateDescription(connection, table, options);
+    return table;
+  }
+
+  private async loadTableCrossDatabase(
+    connection: MssqlConnection,
+    database: string,
+    schema: string,
+    name: string
+  ): Promise<TableMetadata | undefined> {
+    const clone: MssqlConnection = {
+      ...connection,
+      database
+    };
+
+    const table = await this.loadTableOnDemand(clone, schema, name, { database });
+    if (!table) {
+      this.logger.warn(`Cross-database metadata not found for ${database}.${schema}.${name}.`);
+    }
     return table;
   }
 }
@@ -319,6 +373,19 @@ function toNumber(value: unknown): number | undefined {
   }
   const parsed = Number(value);
   return Number.isNaN(parsed) ? undefined : parsed;
+}
+
+function toBoolean(value: unknown): boolean {
+  if (typeof value === 'number') {
+    return value !== 0;
+  }
+
+  if (typeof value === 'string') {
+    const normalized = value.trim().toLowerCase();
+    return normalized === '1' || normalized === 'true';
+  }
+
+  return Boolean(value);
 }
 
 function formatDataType(row: QueryResult['rows'][number]): string {

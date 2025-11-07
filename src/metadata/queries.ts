@@ -24,9 +24,14 @@ SELECT
     c.precision,
     c.scale,
     c.is_nullable,
-    ep.value AS description
+  c.is_identity,
+  c.is_computed,
+  c.is_rowguidcol,
+  dc.definition AS default_definition,
+  ep.value AS description
 FROM ${scope}sys.columns AS c
 INNER JOIN ${scope}sys.types AS t ON t.user_type_id = c.user_type_id
+LEFT JOIN ${scope}sys.default_constraints AS dc ON dc.parent_object_id = c.object_id AND dc.parent_column_id = c.column_id
 LEFT JOIN ${scope}sys.extended_properties AS ep ON ep.major_id = c.object_id AND ep.minor_id = c.column_id AND ep.name = 'MS_Description'
 WHERE c.object_id = OBJECT_ID(N'${identifier}')
 ORDER BY c.column_id;

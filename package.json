@@ -36,6 +36,11 @@
         "category": "SQL Toolbelt Lite"
       },
       {
+        "command": "sqlToolbelt.generateInsertStatement",
+        "title": "SQL Toolbelt Lite: Generate INSERT Statement",
+        "category": "SQL Toolbelt Lite"
+      },
+      {
         "command": "sqlToolbelt.openHistory",
         "title": "SQL Toolbelt Lite: Show SQL History",
         "category": "SQL Toolbelt Lite"

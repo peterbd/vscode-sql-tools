@@ -5,6 +5,7 @@ import { SqlCompletionProvider } from './features/completionProvider';
 import { SqlHoverProvider } from './features/hoverProvider';
 import { registerExpandWildcardCommand } from './features/expandWildcard';
 import { registerScriptCommands } from './features/scriptAsAlter';
+import { registerInsertGenerator } from './features/insertGenerator';
 import { HistoryStore } from './history/historyStore';
 import { HistoryView } from './history/historyView';
 import { registerHistoryCommands } from './history/historyCommands';
@@ -34,6 +35,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 
   registerExpandWildcardCommand(context, schemaCache, api);
   registerScriptCommands(context, api, schemaCache);
+  registerInsertGenerator(context, api, schemaCache);
 
   const historyStore = new HistoryStore(context);
   await historyStore.initialize();
