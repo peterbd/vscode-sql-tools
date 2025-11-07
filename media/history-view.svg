@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" role="img" aria-labelledby="title">
+  <title id="title">History View Icon</title>
+  <circle cx="12" cy="12" r="10" fill="#34495e" />
+  <path d="M12 6v6l4 2" stroke="#ecf0f1" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" />
+  <path d="M6 12a6 6 0 1 1 6 6" stroke="#ecf0f1" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round" />
+</svg>

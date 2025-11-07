@@ -1,0 +1,43 @@
+{
+  "SelectStarFrom": {
+    "prefix": "ssf",
+    "body": [
+      "SELECT *",
+      "FROM ${1:dbo}.${2:TableName};"
+    ],
+    "description": "SELECT * FROM snippet"
+  },
+  "InsertInto": {
+    "prefix": "ii",
+    "body": [
+      "INSERT INTO ${1:dbo}.${2:TableName} (${3:Columns})",
+      "VALUES (${4:Values});"
+    ],
+    "description": "INSERT INTO snippet"
+  },
+  "UpdateEntity": {
+    "prefix": "ue",
+    "body": [
+      "UPDATE ${1:dbo}.${2:TableName}",
+      "SET ${3:Column} = ${4:Value}",
+      "WHERE ${5:Condition};"
+    ],
+    "description": "UPDATE snippet"
+  },
+  "CreateTable": {
+    "prefix": "ct",
+    "body": [
+      "CREATE TABLE ${1:dbo}.${2:TableName} (",
+      "\t${3:Column} ${4:Type}",
+      ");"
+    ],
+    "description": "CREATE TABLE snippet"
+  },
+  "AlterProc": {
+    "prefix": "ap",
+    "body": [
+      "ALTER PROCEDURE ${1:ProcedureName}"
+    ],
+    "description": "ALTER PROCEDURE snippet"
+  }
+}
