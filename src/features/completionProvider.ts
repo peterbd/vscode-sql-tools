@@ -32,6 +32,9 @@ export class SqlCompletionProvider implements vscode.CompletionItemProvider {
 
     const analysis = SqlParser.analyzeCompletionContext(document, position);
     const items: vscode.CompletionItem[] = [];
+  const configuration = vscode.workspace.getConfiguration('sqlToolbelt');
+  const autoScriptOnAccept = configuration.get<boolean>('completion.autoScriptOnAccept', false);
+  const shouldAutoScript = autoScriptOnAccept && analysis.routineTrigger === 'ddl';
 
     switch (analysis.type) {
       case 'table': {
@@ -95,6 +98,12 @@ export class SqlCompletionProvider implements vscode.CompletionItemProvider {
 
             const completion = new vscode.CompletionItem(`${routine.schema}.${routine.name}`, vscode.CompletionItemKind.Function);
             completion.detail = routine.type;
+            if (shouldAutoScript) {
+              completion.command = {
+                command: 'sqlToolbelt.scriptAsAlter',
+                title: 'Script Object as ALTER'
+              };
+            }
             this.metadata.set(completion, { type: 'routine', schema: routine.schema, name: routine.name });
             items.push(completion);
           }
@@ -117,6 +126,12 @@ export class SqlCompletionProvider implements vscode.CompletionItemProvider {
             const completion = new vscode.CompletionItem(`${view.schema}.${view.name}`, vscode.CompletionItemKind.Struct);
             completion.detail = 'VIEW';
             completion.documentation = view.description;
+            if (shouldAutoScript) {
+              completion.command = {
+                command: 'sqlToolbelt.scriptAsAlter',
+                title: 'Script Object as ALTER'
+              };
+            }
             this.metadata.set(completion, { type: 'table', schema: view.schema, name: view.name });
             items.push(completion);
           }
@@ -137,7 +152,7 @@ export class SqlCompletionProvider implements vscode.CompletionItemProvider {
         break;
     }
 
-    const allowJoinHints = vscode.workspace.getConfiguration('sqlToolbelt').get<boolean>('completion.enableJoinHints');
+  const allowJoinHints = configuration.get<boolean>('completion.enableJoinHints');
     if (allowJoinHints && analysis.type === 'table') {
       const joinHints = await this.createJoinHints(document, connection);
       items.push(...joinHints);

@@ -8,6 +8,7 @@ export interface CompletionContextResult {
   readonly owner?: string;
   readonly alias?: string;
   readonly routineCategory?: 'procedure' | 'function' | 'view' | 'any';
+  readonly routineTrigger?: 'ddl' | 'exec';
 }
 
 export interface IdentifierMatch {
@@ -163,25 +164,30 @@ export namespace SqlParser {
   function detectRoutineContext(linePrefix: string): CompletionContextResult | undefined {
     const execMatch = /\b(exec(?:ute)?|call)\s+([\w\[\]\.\s]*)$/i.exec(linePrefix);
     if (execMatch) {
-      return buildRoutineContext(execMatch[2], 'procedure');
+      return buildRoutineContext(execMatch[2], 'procedure', 'exec');
     }
 
     const ddlMatch = /\b(?:create\s+or\s+alter|create|alter|drop)\s+(procedure|proc|function|view)\s+([\w\[\]\.\s]*)$/i.exec(linePrefix);
     if (ddlMatch) {
       const category = determineRoutineCategory(ddlMatch[1]);
-      return buildRoutineContext(ddlMatch[2], category);
+      return buildRoutineContext(ddlMatch[2], category, 'ddl');
     }
 
     return undefined;
   }
 
-  function buildRoutineContext(token: string | undefined, category: 'procedure' | 'function' | 'view' | 'any'): CompletionContextResult {
+  function buildRoutineContext(
+    token: string | undefined,
+    category: 'procedure' | 'function' | 'view' | 'any',
+    trigger: 'ddl' | 'exec'
+  ): CompletionContextResult {
     const { schema, prefix } = parseRoutineToken(token ?? '');
     return {
       type: 'routine',
       prefix,
       owner: schema,
-      routineCategory: category
+      routineCategory: category,
+      routineTrigger: trigger
     };
   }
 
