@@ -67,7 +67,7 @@ export class HistoryStore {
       unsaved: Boolean(options?.unsaved)
     };
 
-    const maxItems = vscode.workspace.getConfiguration('sqlToolbelt').get<number>('history.maxItems', 1000);
+    const maxItems = vscode.workspace.getConfiguration('pxSqlTools').get<number>('history.maxItems', 1000);
     this.entries.unshift(entry);
 
     if (this.entries.length > maxItems) {
@@ -100,7 +100,7 @@ export class HistoryStore {
   }
 
   async restoreUnsavedQueries(): Promise<void> {
-    if (!vscode.workspace.getConfiguration('sqlToolbelt').get<boolean>('history.restoreOnStartup', true)) {
+    if (!vscode.workspace.getConfiguration('pxSqlTools').get<boolean>('history.restoreOnStartup', true)) {
       return;
     }
 

@@ -54,5 +54,12 @@
       "ALTER FUNCTION ${1:FunctionName}()"
     ],
     "description": "ALTER FUNCTION snippet"
-  }
+  },
+  "DropTempTable": {
+    "prefix": "dtt",
+    "body": [
+      "IF OBJECT_ID('tempdb..#${1:TempTableName}', 'U') IS NOT NULL DROP TABLE #${1:TempTableName};"
+    ],
+    "description": "DROP TEMP TABLE snippet"
+    }
 }

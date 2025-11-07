@@ -1,8 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" role="img" aria-labelledby="title">
-  <title id="title">SQL Toolbelt Icon</title>
-  <rect x="2" y="8" width="20" height="8" rx="2" ry="2" fill="#2c3e50" />
-  <rect x="4" y="10" width="4" height="4" fill="#ecf0f1" />
-  <rect x="10" y="10" width="4" height="4" fill="#ecf0f1" />
-  <rect x="16" y="10" width="4" height="4" fill="#ecf0f1" />
-  <path d="M2 16h20l-2 4H4z" fill="#c0392b" />
-</svg>

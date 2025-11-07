@@ -20,11 +20,11 @@ export function registerHistoryCommands(
   const logger = getLogger();
 
   context.subscriptions.push(
-    vscode.commands.registerCommand('sqlToolbelt.openHistory', async () => {
-      await vscode.commands.executeCommand('workbench.view.extension.sqlToolbelt');
+    vscode.commands.registerCommand('pxSqlTools.openHistory', async () => {
+      await vscode.commands.executeCommand('workbench.view.extension.pxSqlTools');
     }),
 
-    vscode.commands.registerCommand('sqlToolbelt.reopenFromHistory', async (entry?: HistoryEntry) => {
+    vscode.commands.registerCommand('pxSqlTools.reopenFromHistory', async (entry?: HistoryEntry) => {
       const target = entry ?? view.getSelectedEntry();
       if (!target) {
         vscode.window.showInformationMessage('Select a history entry to reopen.');
@@ -34,7 +34,7 @@ export function registerHistoryCommands(
       view.reveal(target);
     }),
 
-    vscode.commands.registerCommand('sqlToolbelt.toggleFavoriteHistory', async (entry?: HistoryEntry) => {
+    vscode.commands.registerCommand('pxSqlTools.toggleFavoriteHistory', async (entry?: HistoryEntry) => {
       const target = entry ?? view.getSelectedEntry();
       if (!target) {
         return;
@@ -42,7 +42,7 @@ export function registerHistoryCommands(
       await store.toggleFavorite(target.id);
     }),
 
-    vscode.commands.registerCommand('sqlToolbelt.copyHistory', (entry?: HistoryEntry) => {
+    vscode.commands.registerCommand('pxSqlTools.copyHistory', (entry?: HistoryEntry) => {
       const target = entry ?? view.getSelectedEntry();
       if (!target) {
         return;
@@ -51,7 +51,7 @@ export function registerHistoryCommands(
       vscode.window.showInformationMessage('Query copied to clipboard.');
     }),
 
-    vscode.commands.registerCommand('sqlToolbelt.deleteHistory', async (entry?: HistoryEntry) => {
+    vscode.commands.registerCommand('pxSqlTools.deleteHistory', async (entry?: HistoryEntry) => {
       const target = entry ?? view.getSelectedEntry();
       if (!target) {
         return;
@@ -59,14 +59,14 @@ export function registerHistoryCommands(
       await store.delete(target.id);
     }),
 
-    vscode.commands.registerCommand('sqlToolbelt.clearHistory', async () => {
+    vscode.commands.registerCommand('pxSqlTools.clearHistory', async () => {
       const answer = await vscode.window.showWarningMessage('Clear all SQL history entries?', { modal: true }, 'Clear');
       if (answer === 'Clear') {
         await store.clear();
       }
     }),
 
-    vscode.commands.registerCommand('sqlToolbelt.history.search', async () => {
+    vscode.commands.registerCommand('pxSqlTools.history.search', async () => {
       const search = await vscode.window.showInputBox({
         placeHolder: 'Filter history...',
         prompt: 'Enter text to filter SQL history entries'

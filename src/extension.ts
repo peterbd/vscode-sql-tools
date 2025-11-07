@@ -19,7 +19,7 @@ interface CommandExecution {
 
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
   const logger = getLogger();
-  logger.info('Activating SQL Toolbelt Lite extension.');
+  logger.info('Activating PX SQL Tools extension.');
 
   const api = new MssqlApi(context.extension.id);
   const schemaCache = new SchemaCache(api);
@@ -43,7 +43,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   context.subscriptions.push(historyView);
   registerHistoryCommands(context, historyStore, historyView, api);
 
-  if (vscode.workspace.getConfiguration('sqlToolbelt').get<boolean>('history.restoreOnStartup', true)) {
+  if (vscode.workspace.getConfiguration('pxSqlTools').get<boolean>('history.restoreOnStartup', true)) {
     await historyStore.restoreUnsavedQueries();
   }
 
@@ -73,5 +73,5 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 
 export function deactivate(): void {
   const logger = getLogger();
-  logger.info('SQL Toolbelt Lite extension deactivated.');
+  logger.info('PX SQL Tools extension deactivated.');
 }

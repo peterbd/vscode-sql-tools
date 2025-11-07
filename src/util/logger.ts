@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 
 class ExtensionLogger {
-  private readonly channel = vscode.window.createOutputChannel('SQL Toolbelt Lite');
+  private readonly channel = vscode.window.createOutputChannel('PX SQL Tools');
 
   info(message: string): void {
     this.channel.appendLine(`[INFO ${new Date().toISOString()}] ${message}`);

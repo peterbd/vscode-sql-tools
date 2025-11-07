@@ -21,68 +21,84 @@ export function registerInsertGenerator(context: vscode.ExtensionContext, api: M
         return false;
       }
 
-      const connection = await api.ensureConnection({ prompt: false });
-      if (!connection) {
-        void vscode.window.showWarningMessage('Connect to a database before generating an INSERT statement.');
-        return false;
-      }
+      const status = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 1000);
+      status.text = '$(loading~spin) PX SQL Tools: Generating INSERT statement…';
+      status.show();
 
-      let targetSchema = args?.schema;
-      let targetName = args?.name;
-      let targetDatabase = args?.database ?? connection.database;
-
-      if (!targetName) {
-        const identifier = SqlParser.getIdentifierAtPosition(editor.document, editor.selection.active);
-        if (identifier) {
-          const qualified = SqlParser.parseQualifiedIdentifier(identifier.text);
-          targetName = qualified.object;
-          targetSchema = targetSchema ?? qualified.schema;
-          targetDatabase = targetDatabase ?? qualified.database ?? connection.database;
-        }
-      }
-
-      if (!targetName) {
-        void vscode.window.showInformationMessage('Unable to determine the table name for INSERT generation.');
-        return false;
-      }
-
-      const schemaName = targetSchema ?? 'dbo';
-
-      const table = await schemaCache.getTable(connection, schemaName, targetName, undefined, { database: targetDatabase });
-      if (!table || !table.columns) {
-        void vscode.window.showWarningMessage(`Column metadata not found for ${schemaName}.${targetName}.`);
-        return false;
-      }
-
-      const insertableColumns = table.columns.filter((column) => !column.isIdentity && !column.isComputed && !column.isRowGuid);
-      if (insertableColumns.length === 0) {
-        void vscode.window.showWarningMessage(
-          `No insertable columns were found for ${schemaName}.${targetName}. All columns are identity, computed, or rowguid.`
-        );
-        return false;
-      }
-
-      const snippet = buildInsertSnippet(insertableColumns);
-
-      suppressDocumentChanges = true;
       try {
-        const inserted = await editor.insertSnippet(snippet, editor.selection.active);
-        if (!inserted) {
-          logger.warn('Failed to insert INSERT statement snippet.');
+        console.log('[pxSqlTools][insertGenerator] Ensuring connection with prompt=false');
+        const connection = await api.ensureConnection({ prompt: false });
+        console.log('[pxSqlTools][insertGenerator] Connection result:', connection);
+        if (!connection) {
+          void vscode.window.showWarningMessage('Connect to a database before generating an INSERT statement.');
+          return false;
         }
-        return inserted;
+
+        let targetSchema = args?.schema;
+        let targetName = args?.name;
+        let targetDatabase = args?.database ?? connection.database;
+        console.log('[pxSqlTools][insertGenerator] Initial target args:', args);
+
+        if (!targetName) {
+          const identifier = SqlParser.getIdentifierAtPosition(editor.document, editor.selection.active);
+          console.log('[pxSqlTools][insertGenerator] Identifier at cursor:', identifier?.text, identifier?.range);
+          if (identifier) {
+            const qualified = SqlParser.parseQualifiedIdentifier(identifier.text);
+            console.log('[pxSqlTools][insertGenerator] Parsed identifier:', qualified);
+            targetName = qualified.object;
+            targetSchema = targetSchema ?? qualified.schema;
+            targetDatabase = targetDatabase ?? qualified.database ?? connection.database;
+          }
+        }
+
+        if (!targetName) {
+          void vscode.window.showInformationMessage('Unable to determine the table name for INSERT generation.');
+          return false;
+        }
+
+        const schemaName = targetSchema ?? 'dbo';
+        console.log('[pxSqlTools][insertGenerator] Using target:', { schemaName, targetName, targetDatabase });
+
+        const table = await schemaCache.getTable(connection, schemaName, targetName, undefined, { database: targetDatabase });
+        console.log('[pxSqlTools][insertGenerator] Table metadata found:', Boolean(table));
+        if (!table || !table.columns) {
+          void vscode.window.showWarningMessage(`Column metadata not found for ${schemaName}.${targetName}.`);
+          return false;
+        }
+
+        const insertableColumns = table.columns.filter((column) => !column.isIdentity && !column.isComputed && !column.isRowGuid);
+        console.log('[pxSqlTools][insertGenerator] Insertable column count:', insertableColumns.length);
+        if (insertableColumns.length === 0) {
+          void vscode.window.showWarningMessage(
+            `No insertable columns were found for ${schemaName}.${targetName}. All columns are identity, computed, or rowguid.`
+          );
+          return false;
+        }
+
+        const snippet = buildInsertSnippet(insertableColumns);
+
+        suppressDocumentChanges = true;
+        try {
+          const inserted = await editor.insertSnippet(snippet, editor.selection.active);
+          if (!inserted) {
+            logger.warn('Failed to insert INSERT statement snippet.');
+          }
+          return inserted;
+        } finally {
+          suppressDocumentChanges = false;
+        }
       } finally {
-        suppressDocumentChanges = false;
+        status.dispose();
       }
     } catch (error) {
       logger.error('Failed to generate INSERT statement.', error);
-      void vscode.window.showErrorMessage('SQL Toolbelt Lite was unable to generate the INSERT statement. Check the logs for details.');
+      void vscode.window.showErrorMessage('PX SQL Tools was unable to generate the INSERT statement. Check the logs for details.');
       suppressDocumentChanges = false;
       return false;
     }
   };
 
-  const disposable = vscode.commands.registerCommand('sqlToolbelt.generateInsertStatement', async (args?: InsertCommandArgs) => {
+  const disposable = vscode.commands.registerCommand('pxSqlTools.generateInsertStatement', async (args?: InsertCommandArgs) => {
     if (suppressDocumentChanges) {
       return;
     }

@@ -1,6 +1,6 @@
 {
-  "name": "sql-toolbelt-lite",
-  "displayName": "SQL Toolbelt Lite",
+  "name": "px-sql-tools",
+  "displayName": "PX SQL Tools",
   "description": "Developer-centric T-SQL tooling for VS Code using the MSSQL extension.",
   "version": "0.1.0",
   "publisher": "sql-toolbelt",
@@ -21,70 +21,70 @@
   "contributes": {
     "commands": [
       {
-        "command": "sqlToolbelt.expandWildcard",
-        "title": "SQL Toolbelt Lite: Expand Wildcard",
-        "category": "SQL Toolbelt Lite"
+        "command": "pxSqlTools.expandWildcard",
+        "title": "PX SQL Tools: Expand Wildcard",
+        "category": "PX SQL Tools"
       },
       {
-        "command": "sqlToolbelt.scriptAsAlter",
-        "title": "SQL Toolbelt Lite: Script Object as ALTER",
-        "category": "SQL Toolbelt Lite"
+        "command": "pxSqlTools.scriptAsAlter",
+        "title": "PX SQL Tools: Script Object as ALTER",
+        "category": "PX SQL Tools"
       },
       {
-        "command": "sqlToolbelt.scriptAsCreate",
-        "title": "SQL Toolbelt Lite: Script Object as CREATE",
-        "category": "SQL Toolbelt Lite"
+        "command": "pxSqlTools.scriptAsCreate",
+        "title": "PX SQL Tools: Script Object as CREATE",
+        "category": "PX SQL Tools"
       },
       {
-        "command": "sqlToolbelt.generateInsertStatement",
-        "title": "SQL Toolbelt Lite: Generate INSERT Statement",
-        "category": "SQL Toolbelt Lite"
+        "command": "pxSqlTools.generateInsertStatement",
+        "title": "PX SQL Tools: Generate INSERT Statement",
+        "category": "PX SQL Tools"
       },
       {
-        "command": "sqlToolbelt.openHistory",
-        "title": "SQL Toolbelt Lite: Show SQL History",
-        "category": "SQL Toolbelt Lite"
+        "command": "pxSqlTools.openHistory",
+        "title": "PX SQL Tools: Show SQL History",
+        "category": "PX SQL Tools"
       },
       {
-        "command": "sqlToolbelt.reopenFromHistory",
-        "title": "SQL Toolbelt Lite: Reopen Query from History",
-        "category": "SQL Toolbelt Lite"
+        "command": "pxSqlTools.reopenFromHistory",
+        "title": "PX SQL Tools: Reopen Query from History",
+        "category": "PX SQL Tools"
       },
       {
-        "command": "sqlToolbelt.toggleFavoriteHistory",
-        "title": "SQL Toolbelt Lite: Toggle Favorite",
-        "category": "SQL Toolbelt Lite"
+        "command": "pxSqlTools.toggleFavoriteHistory",
+        "title": "PX SQL Tools: Toggle Favorite",
+        "category": "PX SQL Tools"
       },
       {
-        "command": "sqlToolbelt.clearHistory",
-        "title": "SQL Toolbelt Lite: Clear Query History",
-        "category": "SQL Toolbelt Lite"
+        "command": "pxSqlTools.clearHistory",
+        "title": "PX SQL Tools: Clear Query History",
+        "category": "PX SQL Tools"
       },
       {
-        "command": "sqlToolbelt.copyHistory",
-        "title": "SQL Toolbelt Lite: Copy Query",
-        "category": "SQL Toolbelt Lite"
+        "command": "pxSqlTools.copyHistory",
+        "title": "PX SQL Tools: Copy Query",
+        "category": "PX SQL Tools"
       },
       {
-        "command": "sqlToolbelt.deleteHistory",
-        "title": "SQL Toolbelt Lite: Delete Query",
-        "category": "SQL Toolbelt Lite"
+        "command": "pxSqlTools.deleteHistory",
+        "title": "PX SQL Tools: Delete Query",
+        "category": "PX SQL Tools"
       },
       {
-        "command": "sqlToolbelt.history.search",
-        "title": "SQL Toolbelt Lite: Search History",
-        "category": "SQL Toolbelt Lite"
+        "command": "pxSqlTools.history.search",
+        "title": "PX SQL Tools: Search History",
+        "category": "PX SQL Tools"
       }
     ],
     "keybindings": [
       {
-        "command": "sqlToolbelt.expandWildcard",
+        "command": "pxSqlTools.expandWildcard",
         "key": "ctrl+alt+w",
         "mac": "cmd+alt+w",
         "when": "editorTextFocus && editorLangId == sql"
       },
       {
-        "command": "sqlToolbelt.scriptAsAlter",
+        "command": "pxSqlTools.scriptAsAlter",
         "key": "ctrl+alt+a",
         "mac": "cmd+alt+a",
         "when": "editorTextFocus && editorLangId == sql"
@@ -93,98 +93,98 @@
     "menus": {
       "editor/context": [
         {
-          "command": "sqlToolbelt.expandWildcard",
+          "command": "pxSqlTools.expandWildcard",
           "when": "editorLangId == sql",
           "group": "navigation@1"
         },
         {
-          "command": "sqlToolbelt.scriptAsAlter",
+          "command": "pxSqlTools.scriptAsAlter",
           "when": "editorLangId == sql",
           "group": "navigation@2"
         },
         {
-          "command": "sqlToolbelt.scriptAsCreate",
+          "command": "pxSqlTools.scriptAsCreate",
           "when": "editorLangId == sql",
           "group": "navigation@3"
         }
       ],
       "view/title": [
         {
-          "command": "sqlToolbelt.clearHistory",
-          "when": "view == sqlToolbelt.historyView",
+          "command": "pxSqlTools.clearHistory",
+          "when": "view == pxSqlTools.historyView",
           "group": "navigation@99"
         },
         {
-          "command": "sqlToolbelt.history.search",
-          "when": "view == sqlToolbelt.historyView",
+          "command": "pxSqlTools.history.search",
+          "when": "view == pxSqlTools.historyView",
           "group": "navigation@1"
         }
       ],
       "view/item/context": [
         {
-          "command": "sqlToolbelt.reopenFromHistory",
+          "command": "pxSqlTools.reopenFromHistory",
           "when": "viewItem == historyItem"
         },
         {
-          "command": "sqlToolbelt.reopenFromHistory",
+          "command": "pxSqlTools.reopenFromHistory",
           "when": "viewItem == historyItem.favorite"
         },
         {
-          "command": "sqlToolbelt.copyHistory",
+          "command": "pxSqlTools.copyHistory",
           "when": "viewItem == historyItem"
         },
         {
-          "command": "sqlToolbelt.copyHistory",
+          "command": "pxSqlTools.copyHistory",
           "when": "viewItem == historyItem.favorite"
         },
         {
-          "command": "sqlToolbelt.toggleFavoriteHistory",
+          "command": "pxSqlTools.toggleFavoriteHistory",
           "when": "viewItem == historyItem"
         },
         {
-          "command": "sqlToolbelt.toggleFavoriteHistory",
+          "command": "pxSqlTools.toggleFavoriteHistory",
           "when": "viewItem == historyItem.favorite"
         },
         {
-          "command": "sqlToolbelt.deleteHistory",
+          "command": "pxSqlTools.deleteHistory",
           "when": "viewItem == historyItem"
         },
         {
-          "command": "sqlToolbelt.deleteHistory",
+          "command": "pxSqlTools.deleteHistory",
           "when": "viewItem == historyItem.favorite"
         }
       ]
     },
     "configuration": {
-      "title": "SQL Toolbelt Lite",
+      "title": "PX SQL Tools",
       "properties": {
-        "sqlToolbelt.history.maxItems": {
+        "pxSqlTools.history.maxItems": {
           "type": "number",
           "default": 1000,
           "minimum": 10,
           "description": "Maximum number of SQL history items to retain. Older items are discarded when the limit is reached."
         },
-        "sqlToolbelt.history.restoreOnStartup": {
+        "pxSqlTools.history.restoreOnStartup": {
           "type": "boolean",
           "default": true,
           "description": "Restore unsaved queries that were active when VS Code was last closed."
         },
-        "sqlToolbelt.snippets.customFile": {
+        "pxSqlTools.snippets.customFile": {
           "type": "string",
           "default": "",
           "description": "Optional path to a JSON file containing additional SQL snippets to load at startup."
         },
-        "sqlToolbelt.completion.enableJoinHints": {
+        "pxSqlTools.completion.enableJoinHints": {
           "type": "boolean",
           "default": false,
           "description": "Suggest JOIN clauses based on foreign key relationships when typing JOIN statements."
         },
-        "sqlToolbelt.completion.autoScriptOnAccept": {
+        "pxSqlTools.completion.autoScriptOnAccept": {
           "type": "boolean",
           "default": false,
           "description": "Automatically generate the ALTER script after accepting a routine completion inside an ALTER statement."
         },
-        "sqlToolbelt.expandWildcard.quickPick": {
+        "pxSqlTools.expandWildcard.quickPick": {
           "type": "boolean",
           "default": false,
           "description": "Prompt with a Quick Pick before inserting expanded wildcard columns."
@@ -194,16 +194,16 @@
     "viewsContainers": {
       "activitybar": [
         {
-          "id": "sqlToolbelt",
-          "title": "SQL Toolbelt",
-          "icon": "media/toolbelt-icon.svg"
+          "id": "pxSqlTools",
+          "title": "PX SQL Tools",
+          "icon": "media/database-icon.svg"
         }
       ]
     },
     "views": {
-      "sqlToolbelt": [
+      "pxSqlTools": [
         {
-          "id": "sqlToolbelt.historyView",
+          "id": "pxSqlTools.historyView",
           "name": "SQL History",
           "icon": "media/history-view.svg"
         }

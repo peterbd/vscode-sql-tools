@@ -256,6 +256,7 @@ export class SchemaCache implements vscode.Disposable {
     );
     const query = columnsForObjectQuery(table.schema, table.name, queryDatabase);
     const result = await this.api.runQuery(query, undefined, { useLegacyFallback: false });
+    console.log('[pxSqlTools][schemaCache] columnsForObjectQuery result:', result);
     if (!result) {
   this.logger.warn(`Failed to load columns for ${queryDatabase ?? '<default>'}.${table.schema}.${table.name}.`);
       return table;
@@ -286,6 +287,7 @@ export class SchemaCache implements vscode.Disposable {
   const queryDatabase = options?.database ?? connection?.database;
   const query = extendedPropertyDescriptionQuery(table.schema, table.name, queryDatabase);
     const description = await this.api.runScalar<string>(query, { useLegacyFallback: false });
+    console.log('[pxSqlTools][schemaCache] extended property description:', description);
     return description ? { ...table, description } : table;
   }
 
@@ -303,6 +305,7 @@ export class SchemaCache implements vscode.Disposable {
       undefined,
       { useLegacyFallback: false }
     );
+    console.log('[pxSqlTools][schemaCache] routineParametersQuery result:', result);
     if (!result) {
       return routine;
     }

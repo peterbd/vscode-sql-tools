@@ -7,7 +7,7 @@ export class HistoryView implements vscode.Disposable {
 
   constructor(private readonly store: HistoryStore) {
     this.treeDataProvider = new HistoryTreeDataProvider(store);
-    this.treeView = vscode.window.createTreeView('sqlToolbelt.historyView', {
+    this.treeView = vscode.window.createTreeView('pxSqlTools.historyView', {
       treeDataProvider: this.treeDataProvider,
       showCollapseAll: true
     });
@@ -49,7 +49,7 @@ class HistoryTreeDataProvider implements vscode.TreeDataProvider<HistoryTreeItem
   constructor(private readonly store: HistoryStore) {
     this.disposables.push(
       store.onDidChange(() => this.changeEvent.fire(undefined)),
-      vscode.commands.registerCommand('sqlToolbelt.historyView.refresh', () => this.changeEvent.fire(undefined))
+      vscode.commands.registerCommand('pxSqlTools.historyView.refresh', () => this.changeEvent.fire(undefined))
     );
   }
 
@@ -130,7 +130,7 @@ class HistoryTreeLeaf extends vscode.TreeItem {
     this.description = `${entry.server ?? ''}${entry.database ? `/${entry.database}` : ''}`;
     this.command = {
       title: 'Reopen Query',
-      command: 'sqlToolbelt.reopenFromHistory',
+      command: 'pxSqlTools.reopenFromHistory',
       arguments: [entry]
     };
     this.contextValue = entry.favorite ? 'historyItem.favorite' : 'historyItem';

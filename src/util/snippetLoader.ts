@@ -15,7 +15,7 @@ export class SnippetLoader {
   constructor(private readonly context: vscode.ExtensionContext) {}
 
   async loadCustomSnippets(): Promise<CustomSnippet[]> {
-    const configuration = vscode.workspace.getConfiguration('sqlToolbelt');
+  const configuration = vscode.workspace.getConfiguration('pxSqlTools');
     const configuredPath = configuration.get<string>('snippets.customFile');
 
     const targetUri = configuredPath

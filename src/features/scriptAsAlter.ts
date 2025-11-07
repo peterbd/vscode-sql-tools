@@ -5,64 +5,79 @@ import { routineDefinitionQuery } from '../metadata/queries';
 import { SchemaCache } from '../metadata/schemaCache';
 
 export function registerScriptCommands(context: vscode.ExtensionContext, api: MssqlApi, schemaCache?: SchemaCache): void {
-  const alter = vscode.commands.registerCommand('sqlToolbelt.scriptAsAlter', () => scriptObject('alter', api, schemaCache));
-  const create = vscode.commands.registerCommand('sqlToolbelt.scriptAsCreate', () => scriptObject('create', api, schemaCache));
+  const alter = vscode.commands.registerCommand('pxSqlTools.scriptAsAlter', () => scriptObject('alter', api, schemaCache));
+  const create = vscode.commands.registerCommand('pxSqlTools.scriptAsCreate', () => scriptObject('create', api, schemaCache));
 
   context.subscriptions.push(alter, create);
 }
 
 async function scriptObject(mode: 'alter' | 'create', api: MssqlApi, schemaCache?: SchemaCache): Promise<void> {
-  const editor = vscode.window.activeTextEditor;
-  if (!editor || editor.document.languageId !== 'sql') {
-    vscode.window.showInformationMessage('Place the cursor on a SQL object name to script it.');
-    return;
-  }
+  const status = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 1000);
+  status.text = mode === 'alter' ? '$(loading~spin) PX SQL Tools: Generating ALTER script…' : '$(loading~spin) PX SQL Tools: Generating CREATE script…';
+  status.show();
 
-  const connection = await api.ensureConnection({ prompt: false });
-  if (!connection) {
-    vscode.window.showWarningMessage('Connect this file to a database before scripting objects.');
-    return;
-  }
+  try {
+    const editor = vscode.window.activeTextEditor;
+    if (!editor || editor.document.languageId !== 'sql') {
+      vscode.window.showInformationMessage('Place the cursor on a SQL object name to script it.');
+      return;
+    }
 
-  const identifier = SqlParser.getIdentifierAtPosition(editor.document, editor.selection.active);
-  if (!identifier) {
-    vscode.window.showInformationMessage('No SQL object detected under the cursor.');
-    return;
-  }
+    console.log('[pxSqlTools][scriptAsAlter] Ensuring connection with prompt=false');
+    const connection = await api.ensureConnection({ prompt: false });
+    console.log('[pxSqlTools][scriptAsAlter] Connection result:', connection);
+    if (!connection) {
+      vscode.window.showWarningMessage('Connect this file to a database before scripting objects.');
+      return;
+    }
 
-  const qualified = SqlParser.parseQualifiedIdentifier(identifier.text);
-  if (!qualified.object) {
-    vscode.window.showWarningMessage('Unable to determine object name to script.');
-    return;
-  }
+    const identifier = SqlParser.getIdentifierAtPosition(editor.document, editor.selection.active);
+    console.log('[pxSqlTools][scriptAsAlter] Identifier at cursor:', identifier?.text, identifier?.range);
+    if (!identifier) {
+      vscode.window.showInformationMessage('No SQL object detected under the cursor.');
+      return;
+    }
 
-  const schema = qualified.schema ?? 'dbo';
-  const objectName = qualified.object;
-  const database = qualified.database ?? connection.database;
+    const qualified = SqlParser.parseQualifiedIdentifier(identifier.text);
+    console.log('[pxSqlTools][scriptAsAlter] Parsed identifier:', qualified);
+    if (!qualified.object) {
+      vscode.window.showWarningMessage('Unable to determine object name to script.');
+      return;
+    }
 
-  let definition = await api.runScalar<string>(
-    routineDefinitionQuery(schema, objectName, database),
-    { useLegacyFallback: false }
-  );
-  if (!definition && schemaCache && !qualified.database) {
-    const routine = await schemaCache.getRoutine(connection, schema, objectName);
-    definition = routine?.definition;
-  }
-  if (!definition) {
-    const schemaPart = schema ?? 'dbo';
-    const prefix = database ? `${database}.` : '';
-    vscode.window.showWarningMessage(`Definition not found for ${prefix}${schemaPart}.${objectName}.`);
-    return;
-  }
+    const schema = qualified.schema ?? 'dbo';
+    const objectName = qualified.object;
+    const database = qualified.database ?? connection.database;
+    console.log('[pxSqlTools][scriptAsAlter] Using target:', { schema, objectName, database });
 
-  const content = mode === 'alter' ? convertToAlter(definition) : definition;
-  const replaced =
-    mode === 'alter'
-      ? await tryReplaceInline(statementRange(editor.document, identifier.range), content, editor)
-      : false;
-  if (!replaced) {
-    const document = await vscode.workspace.openTextDocument({ content, language: 'sql' });
-    await vscode.window.showTextDocument(document, { preview: false });
+    let definition = await api.runScalar<string>(
+      routineDefinitionQuery(schema, objectName, database),
+      { useLegacyFallback: false }
+    );
+    console.log('[pxSqlTools][scriptAsAlter] Definition fetched via direct query:', Boolean(definition));
+    if (!definition && schemaCache && !qualified.database) {
+      const routine = await schemaCache.getRoutine(connection, schema, objectName);
+      console.log('[pxSqlTools][scriptAsAlter] Fallback routine metadata found:', Boolean(routine));
+      definition = routine?.definition;
+    }
+    if (!definition) {
+      const schemaPart = schema ?? 'dbo';
+      const prefix = database ? `${database}.` : '';
+      vscode.window.showWarningMessage(`Definition not found for ${prefix}${schemaPart}.${objectName}.`);
+      return;
+    }
+
+    const content = mode === 'alter' ? convertToAlter(definition) : definition;
+    const replaced =
+      mode === 'alter'
+        ? await tryReplaceInline(statementRange(editor.document, identifier.range), content, editor)
+        : false;
+    if (!replaced) {
+      const document = await vscode.workspace.openTextDocument({ content, language: 'sql' });
+      await vscode.window.showTextDocument(document, { preview: false });
+    }
+  } finally {
+    status.dispose();
   }
 }
 

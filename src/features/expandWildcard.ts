@@ -6,7 +6,7 @@ import { SqlParser } from '../util/sqlParser';
 const COLUMN_PICK_THRESHOLD = 12;
 
 export function registerExpandWildcardCommand(context: vscode.ExtensionContext, schemaCache: SchemaCache, api: MssqlApi): void {
-  const disposable = vscode.commands.registerCommand('sqlToolbelt.expandWildcard', async () => {
+  const disposable = vscode.commands.registerCommand('pxSqlTools.expandWildcard', async () => {
     const editor = vscode.window.activeTextEditor;
     if (!editor || editor.document.languageId !== 'sql') {
       vscode.window.showInformationMessage('Place the cursor on a wildcard in a SQL file to expand it.');
@@ -32,7 +32,7 @@ export function registerExpandWildcardCommand(context: vscode.ExtensionContext, 
     }
 
     let columns = table.columns;
-    const useQuickPick = vscode.workspace.getConfiguration('sqlToolbelt').get<boolean>('expandWildcard.quickPick');
+  const useQuickPick = vscode.workspace.getConfiguration('pxSqlTools').get<boolean>('expandWildcard.quickPick');
 
     if (useQuickPick && columns.length >= COLUMN_PICK_THRESHOLD) {
       const picked = await vscode.window.showQuickPick(

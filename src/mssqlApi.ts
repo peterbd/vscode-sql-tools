@@ -82,6 +82,7 @@ export class MssqlApi implements vscode.Disposable {
   private readonly logger = getLogger();
   private connectionSharing?: ConnectionSharingService;
   private cachedConnection?: CachedConnection;
+  private lastKnownConnection?: MssqlConnection;
   private permissionPromptTimestamp?: number;
   private connectionPromptTimestamp?: number;
   private missingExtensionWarned = false;
@@ -98,6 +99,7 @@ export class MssqlApi implements vscode.Disposable {
       }
     }
     this.cachedConnection = undefined;
+    this.lastKnownConnection = undefined;
   }
 
   async getActiveConnection(): Promise<MssqlConnection | undefined> {
@@ -105,16 +107,33 @@ export class MssqlApi implements vscode.Disposable {
     if (sharing) {
       const result = await this.tryGetActiveConnectionViaSharing(sharing);
       if (result.status === 'ok') {
-        return result.connection;
+        return this.rememberConnection(result.connection);
       }
     }
 
     return this.getActiveConnectionLegacy();
   }
 
+  private rememberConnection(connection: MssqlConnection | undefined): MssqlConnection | undefined {
+    if (!connection) {
+      console.log('[pxSqlTools][mssqlApi] rememberConnection called with undefined');
+      return undefined;
+    }
+
+    console.log('[pxSqlTools][mssqlApi] rememberConnection storing connection:', {
+      connectionId: connection.connectionId,
+      server: connection.server,
+      database: connection.database,
+      user: connection.user
+    });
+    this.lastKnownConnection = { ...connection };
+    return connection;
+  }
+
   async ensureConnection(options?: EnsureConnectionOptions): Promise<MssqlConnection | undefined> {
     const sharing = await this.getConnectionSharingService();
     if (sharing) {
+      console.log('[pxSqlTools][mssqlApi] Attempting to ensure connection via sharing API');
       const shared = await this.ensureConnectionViaSharing(sharing);
       if (shared) {
         return shared;
@@ -122,25 +141,38 @@ export class MssqlApi implements vscode.Disposable {
     }
 
     if (options?.prompt === false) {
-      return undefined;
+      console.log('[pxSqlTools][mssqlApi] prompt=false, attempting legacy connection lookup');
+      const legacy = await this.getActiveConnectionLegacy();
+      if (legacy) {
+        return legacy;
+      }
+      if (this.lastKnownConnection) {
+        console.log('[pxSqlTools][mssqlApi] Returning lastKnownConnection fallback:', {
+          connectionId: this.lastKnownConnection.connectionId,
+          server: this.lastKnownConnection.server,
+          database: this.lastKnownConnection.database,
+          user: this.lastKnownConnection.user
+        });
+      } else {
+        console.log('[pxSqlTools][mssqlApi] No lastKnownConnection available');
+      }
+      return this.lastKnownConnection ? { ...this.lastKnownConnection } : undefined;
     }
 
     return this.ensureConnectionLegacy();
   }
 
   async runQuery(query: string, token?: vscode.CancellationToken, options?: RunQueryOptions): Promise<QueryResult | undefined> {
+    console.log('[pxSqlTools][mssqlApi] runQuery invoked');
     const sharing = await this.getConnectionSharingService();
     if (sharing) {
+      console.log('[pxSqlTools][mssqlApi] Attempting query through sharing API');
       const sharedResult = await this.runQueryViaSharing(sharing, query, token);
       if (sharedResult) {
         return sharedResult;
       }
+      console.log('[pxSqlTools][mssqlApi] Sharing API returned no result; falling back to legacy execution');
     }
-
-    if (options?.useLegacyFallback === false) {
-      return undefined;
-    }
-
     return this.runQueryLegacy(query, token);
   }
 
@@ -168,7 +200,8 @@ export class MssqlApi implements vscode.Disposable {
 
   private async getActiveConnectionLegacy(): Promise<MssqlConnection | undefined> {
     try {
-      return await vscode.commands.executeCommand<MssqlConnection | undefined>(COMMAND_GET_ACTIVE_CONNECTION);
+      const connection = await vscode.commands.executeCommand<MssqlConnection | undefined>(COMMAND_GET_ACTIVE_CONNECTION);
+      return this.rememberConnection(connection);
     } catch (error) {
       this.logger.error('Failed to obtain active MSSQL connection via legacy command.', error);
       return undefined;
@@ -186,7 +219,7 @@ export class MssqlApi implements vscode.Disposable {
     }
 
     const choice = await vscode.window.showInformationMessage(
-      'SQL Toolbelt Lite requires an active MSSQL connection. Connect now?',
+      'PX SQL Tools requires an active MSSQL connection. Connect now?',
       'Connect',
       'Cancel'
     );
@@ -200,7 +233,9 @@ export class MssqlApi implements vscode.Disposable {
   }
 
   private async runQueryLegacy(query: string, token?: vscode.CancellationToken): Promise<QueryResult | undefined> {
+    console.log('[pxSqlTools][mssqlApi] runQueryLegacy invoked');
     const connection = await this.ensureConnectionLegacy();
+    console.log('[pxSqlTools][mssqlApi] ensureConnectionLegacy returned:', connection);
     if (!connection) {
       return undefined;
     }
@@ -212,6 +247,7 @@ export class MssqlApi implements vscode.Disposable {
 
       try {
         const result = await vscode.commands.executeCommand<unknown>(command, query, connection);
+        console.log(`[pxSqlTools][mssqlApi] Executed ${command}, raw result:`, result);
         const normalized = this.normalizeResult(result);
         if (normalized) {
           return normalized;
@@ -222,10 +258,12 @@ export class MssqlApi implements vscode.Disposable {
           continue;
         }
         this.logger.error(`Failed to execute metadata query via ${command}.`, error);
+        console.log(`[pxSqlTools][mssqlApi] ${command} threw error:`, error);
       }
     }
 
     this.logger.warn('MSSQL metadata query command not available.');
+    console.log('[pxSqlTools][mssqlApi] No legacy commands produced a result');
     return undefined;
   }
 
@@ -240,7 +278,7 @@ export class MssqlApi implements vscode.Disposable {
         this.missingExtensionWarned = true;
         this.logger.warn('Microsoft SQL Server (mssql) extension not found.');
         void vscode.window.showWarningMessage(
-          'SQL Toolbelt Lite requires the Microsoft SQL Server (mssql) extension. Install or enable it to use all features.'
+          'PX SQL Tools requires the Microsoft SQL Server (mssql) extension. Install or enable it to use all features.'
         );
       }
       return undefined;
@@ -264,7 +302,7 @@ export class MssqlApi implements vscode.Disposable {
   private async ensureConnectionViaSharing(service: ConnectionSharingService): Promise<MssqlConnection | undefined> {
     const result = await this.tryGetActiveConnectionViaSharing(service);
     if (result.status === 'ok') {
-      return result.connection;
+      return this.rememberConnection(result.connection);
     }
 
     if (result.status === 'permission-required') {
@@ -273,7 +311,7 @@ export class MssqlApi implements vscode.Disposable {
 
     if (result.status === 'error') {
       this.logger.error('Unexpected error while acquiring MSSQL connection via sharing API.', result.error);
-      void vscode.window.showErrorMessage('SQL Toolbelt Lite could not access the MSSQL connection. Check the output log for details.');
+  void vscode.window.showErrorMessage('PX SQL Tools could not access the MSSQL connection. Check the output log for details.');
     }
 
     return undefined;
@@ -287,9 +325,11 @@ export class MssqlApi implements vscode.Disposable {
         return { status: 'no-active-connection' };
       }
 
-      const database = await this.getPreferredDatabase(service, connectionId);
-      const cached = await this.ensureCachedConnection(service, connectionId, database);
-      return { status: 'ok', connection: this.stripConnectionData(cached) };
+  const database = await this.getPreferredDatabase(service, connectionId);
+  const cached = await this.ensureCachedConnection(service, connectionId, database);
+  const connection = this.stripConnectionData(cached);
+  this.rememberConnection(connection);
+  return { status: 'ok', connection };
     } catch (error) {
       const code = this.getConnectionSharingErrorCode(error);
       if (code === 'PERMISSION_REQUIRED' || code === 'PERMISSION_DENIED') {
@@ -319,7 +359,7 @@ export class MssqlApi implements vscode.Disposable {
     }
 
     const choice = await vscode.window.showWarningMessage(
-      'SQL Toolbelt Lite needs permission to access your MSSQL connections. Manage permissions now?',
+  'PX SQL Tools needs permission to access your MSSQL connections. Manage permissions now?',
       'Manage Permissions',
       'Cancel'
     );
@@ -332,7 +372,7 @@ export class MssqlApi implements vscode.Disposable {
 
     const retry = await this.tryGetActiveConnectionViaSharing(service);
     if (retry.status === 'ok') {
-      return retry.connection;
+      return this.rememberConnection(retry.connection);
     }
 
     return undefined;
@@ -343,12 +383,14 @@ export class MssqlApi implements vscode.Disposable {
     query: string,
     token?: vscode.CancellationToken
   ): Promise<QueryResult | undefined> {
+    console.log('[pxSqlTools][mssqlApi] runQueryViaSharing called');
     if (token?.isCancellationRequested) {
       return undefined;
     }
 
     for (let attempt = 0; attempt < 2; attempt++) {
       const connection = await this.ensureConnectionViaSharing(service);
+      console.log('[pxSqlTools][mssqlApi] ensureConnectionViaSharing returned:', connection);
       if (!connection) {
         return undefined;
       }
@@ -358,12 +400,14 @@ export class MssqlApi implements vscode.Disposable {
       }
 
       const cached = this.cachedConnection;
+      console.log('[pxSqlTools][mssqlApi] Cached connection state:', cached);
       if (!cached?.connectionUri) {
         return undefined;
       }
 
       try {
         const result = await service.executeSimpleQuery(cached.connectionUri, query);
+        console.log('[pxSqlTools][mssqlApi] executeSimpleQuery returned:', result);
         if (token?.isCancellationRequested) {
           return undefined;
         }
@@ -373,10 +417,25 @@ export class MssqlApi implements vscode.Disposable {
         }
         return undefined;
       } catch (error) {
+        const message = (error as Error)?.message ?? '';
+
+        if (message.toLowerCase().includes('query has no results to return')) {
+          console.log('[pxSqlTools][mssqlApi] executeSimpleQuery reported no result set; falling back to legacy execution.');
+          return undefined;
+        }
+
         const code = this.getConnectionSharingErrorCode(error);
         if (code === 'NO_ACTIVE_CONNECTION' || code === 'INVALID_CONNECTION_URI' || code === 'CONNECTION_FAILED') {
           if (attempt === 0) {
             this.logger.warn('Shared MSSQL connection was invalid. Attempting to reconnect.');
+            this.disconnectCachedConnection(service);
+            continue;
+          }
+        }
+
+        if (message.toLowerCase().includes('owneruri')) {
+          this.logger.warn('Shared MSSQL connection reported an invalid OwnerUri. Resetting cached connection.');
+          if (attempt === 0) {
             this.disconnectCachedConnection(service);
             continue;
           }
@@ -388,6 +447,7 @@ export class MssqlApi implements vscode.Disposable {
         }
 
         this.logger.error('Failed to execute MSSQL query via connection sharing API.', error);
+        console.log('[pxSqlTools][mssqlApi] executeSimpleQuery threw error:', error);
         return undefined;
       }
     }
