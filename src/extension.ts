@@ -26,7 +26,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 
   const completionProvider = new SqlCompletionProvider(schemaCache, api, snippetLoader);
   context.subscriptions.push(
-    vscode.languages.registerCompletionItemProvider({ language: 'sql' }, completionProvider, '.', ' ')
+    vscode.languages.registerCompletionItemProvider({ language: 'sql' }, completionProvider, '.', ' ', '*')
   );
 
   const hoverProvider = new SqlHoverProvider(schemaCache, api);

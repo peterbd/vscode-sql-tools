@@ -7,6 +7,14 @@
     ],
     "description": "SELECT * FROM snippet"
   },
+  "SelectTopFrom": {
+    "prefix": "stf",
+    "body": [
+      "SELECT TOP (${1:10}) *",
+      "FROM ${2:dbo}.${3:TableName};"
+    ],
+    "description": "SELECT TOP FROM snippet"
+  },
   "InsertInto": {
     "prefix": "ii",
     "body": [
@@ -39,5 +47,12 @@
       "ALTER PROCEDURE ${1:ProcedureName}"
     ],
     "description": "ALTER PROCEDURE snippet"
+  },
+  "AlterFunction": {
+    "prefix": "af",
+    "body": [
+      "ALTER FUNCTION ${1:FunctionName}()"
+    ],
+    "description": "ALTER FUNCTION snippet"
   }
 }
